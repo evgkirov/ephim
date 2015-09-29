@@ -43,3 +43,7 @@ class Tree:
 
         populate_directory((base,), self.structure)
         return base
+
+    @staticmethod
+    def create(structure):
+        return Tree(structure).populate()
