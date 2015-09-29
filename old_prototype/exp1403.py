@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-from datetime import datetime
 from os import path
 from PIL import Image, ExifTags
-import argparse
 import os
 import shutil
 import yaml
@@ -16,11 +14,11 @@ class MetadataStore(dict):
 
     def load(self):
         stream = open(self.location, 'r')
-        self.update(yaml.load(stream))
+        self.update(yaml.safe_load(stream))
         stream.close()
 
     def save(self):
-        stream = file(self.location, 'w')
+        stream = open(self.location, 'w')
         yaml.dump(self, stream)
 
     def get_section(self, name):
@@ -51,8 +49,8 @@ class Library(object):
 
     def __init__(self, location):
         self.location = location
-        self.originals_location =  path.join(self.location, 'originals')
-        self.events_location =  path.join(self.location, 'events')
+        self.originals_location = path.join(self.location, 'originals')
+        self.events_location = path.join(self.location, 'events')
 
     @property
     def originals_dirs(self):
@@ -73,10 +71,10 @@ class Library(object):
                 os.makedirs(event_location, exist_ok=True)
                 src = photo.location
                 dest = os.path.join(event_location, photo.filename)
-                os.link(src, dest)
-                # src = src[len(self.location) + 1:]
-                # src = os.path.join('..', '..', '..', src)
-                # os.symlink(src, dest)
+                # os.link(src, dest)
+                src = src[len(self.location) + 1:]
+                src = os.path.join('..', '..', '..', src)
+                os.symlink(src, dest)
 
     @staticmethod
     def find_library(dir):

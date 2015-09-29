@@ -1,4 +1,6 @@
-EXP1403
+Ephim
 =======
 
-EXP1403 is highly opinionated photo manager with CLI.
+[![Build Status](https://travis-ci.org/kirov/ephim.svg)](https://travis-ci.org/kirov/ephim)
+
+Ephim is highly opinionated photo manager with CLI.
