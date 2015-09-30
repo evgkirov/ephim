@@ -1,9 +1,8 @@
 from pathlib import Path
 
+import piexif
 
-class Masters:
-    def __init__(self, location: Path):
-        self.location = location
+from .metadata import MetadataFile
 
 
 class Library:
@@ -26,3 +25,34 @@ class Library:
     def discover_masters(self):
         for metadata_file in self.masters_location.rglob('metadata.yaml'):
             yield Masters(metadata_file.parent)
+
+
+class Masters:
+    def __init__(self, location: Path):
+        self.location = location
+
+    def discover_photos(self):
+        for file in self.location.iterdir():
+            if file.suffix.lower() in ('.jpg', '.jpeg'):
+                yield Photo(file)
+
+
+class Photo:
+    def __init__(self, location: Path):
+        self.location = location
+        # self.metadata = metadata_file.get_section(location.stem)
+        metadata_store = MetadataFile(location.with_name('metadata.yaml'))
+        self.metadata = metadata_store.get_section(location.stem)
+        self.exif = piexif.load(str(location))['Exif']
+
+    @property
+    def new_filename(self):
+        fn = ''
+        if piexif.ExifIFD.DateTimeOriginal in self.exif:
+            fn += self.exif[piexif.ExifIFD.DateTimeOriginal].decode().replace(':', '-', 2).replace(':', '.')
+        else:
+            fn += '0000-00-00 00.00.00'
+        if 'title' in self.metadata:
+            fn += ' ' + self.metadata['title']
+        fn += self.location.suffix.lower()
+        return fn

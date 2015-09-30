@@ -1,6 +1,5 @@
 import unittest
 
-from PIL import Image, ExifTags
 import piexif
 
 from .utils.fs import Tree, EmptyFile, TextFile, YamlFile, JpegFile
@@ -44,13 +43,8 @@ class FSTests(unittest.TestCase):
         base = Tree.create({
             'file.jpg': JpegFile(exif={
                 piexif.ExifIFD.DateTimeOriginal: '2099:09:29 10:10:10',
-            })
+            }),
         })
         self.assertFile(base / 'file.jpg')
-        with Image.open(str(base / 'file.jpg'), 'r') as image:
-            exif = {
-                ExifTags.TAGS[k]: v
-                for k, v in image._getexif().items()
-                if k in ExifTags.TAGS
-                }
-            self.assertEqual(exif['DateTimeOriginal'], '2099:09:29 10:10:10')
+        exif = piexif.load(str(base / 'file.jpg'))
+        self.assertEqual(exif['Exif'][piexif.ExifIFD.DateTimeOriginal], b'2099:09:29 10:10:10')

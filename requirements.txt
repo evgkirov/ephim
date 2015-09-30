@@ -1,3 +1,2 @@
 pyyaml==3.11
-pillow==2.9.0
 piexif==1.0.2

@@ -3,7 +3,6 @@ import os
 from pathlib import Path
 import tempfile
 
-from PIL import Image
 import piexif
 
 import yaml
@@ -29,19 +28,24 @@ class YamlFile(TextFile):
 
 class JpegFile(EmptyFile):
     def __init__(self, exif: dict = None):
-        self.image = Image.new('RGB', (50, 50))
-        self.exif_ifd = exif
+        # empty jpeg
+        self.image = (b'\xff\xd8\xff\xec\x00\x11Ducky\x00\x01\x00\x04\x00\x00\x00\x00\x00\x00\xff\xee\x00\x0eAdobe\x00d'
+                      b'\xc0\x00\x00\x00\x01\xff\xdb\x00\x84\x00\x1b\x1a\x1a)\x1d)A&&AB///BG?>>?GGGGGGGGGGGGGGGGGGGGGGG'
+                      b'GGGGGGGGGGGGGGGGGGGGG\x01\x1d))4&4?((?G?5?GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG'
+                      b'\xff\xc0\x00\x11\x08\x00\x01\x00\x01\x03\x01"\x00\x02\x11\x01\x03\x11\x01\xff\xc4\x00K\x00\x01'
+                      b'\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x06\x01\x01\x00\x00\x00\x00'
+                      b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+                      b'\x00\x00\x00\x00\x00\x00\x00\x11\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+                      b'\x00\x00\xff\xda\x00\x0c\x03\x01\x00\x02\x11\x03\x11\x00?\x00\xa6\x00\x1f\xff\xd9')
+        self.exif_ifd = exif or {}
 
     def populate(self):
-        image_bytes = BytesIO()
-        self.image.save(image_bytes, 'jpeg')
         exif_bytes = piexif.dump({
             'Exif': self.exif_ifd,
         })
         output = BytesIO()
-        piexif.insert(exif_bytes, image_bytes.getvalue(), output)
+        piexif.insert(exif_bytes, self.image, output)
         return output.getvalue()
-
 
 
 class Tree:
