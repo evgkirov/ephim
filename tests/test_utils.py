@@ -1,7 +1,9 @@
-import os
 import unittest
 
-from .utils.fs import Tree, EmptyFile, TextFile, YamlFile
+from PIL import Image, ExifTags
+import piexif
+
+from .utils.fs import Tree, EmptyFile, TextFile, YamlFile, JpegFile
 
 
 class FSTests(unittest.TestCase):
@@ -31,9 +33,24 @@ class FSTests(unittest.TestCase):
         self.assertFile(base / 'dir_one' / 'dir_two' / 'empty.txt', content=b'')
 
     def test_text_file(self):
-        base = Tree({'file.txt': TextFile('hello!')}).populate()
+        base = Tree.create({'file.txt': TextFile('hello!')})
         self.assertFile(base / 'file.txt', content=b'hello!')
 
     def test_yaml_file(self):
-        base = Tree({'file.yaml': YamlFile({'key': 'value'})}).populate()
+        base = Tree.create({'file.yaml': YamlFile({'key': 'value'})})
         self.assertFile(base / 'file.yaml', content=b'key: value\n')
+
+    def test_jpeg_file(self):
+        base = Tree.create({
+            'file.jpg': JpegFile(exif={
+                piexif.ExifIFD.DateTimeOriginal: '2099:09:29 10:10:10',
+            })
+        })
+        self.assertFile(base / 'file.jpg')
+        with Image.open(str(base / 'file.jpg'), 'r') as image:
+            exif = {
+                ExifTags.TAGS[k]: v
+                for k, v in image._getexif().items()
+                if k in ExifTags.TAGS
+                }
+            self.assertEqual(exif['DateTimeOriginal'], '2099:09:29 10:10:10')
