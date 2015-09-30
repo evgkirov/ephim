@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import tempfile
 
 import yaml
@@ -10,7 +11,7 @@ class EmptyFile:
 
 
 class TextFile(EmptyFile):
-    def __init__(self, content):
+    def __init__(self, content: str):
         self.content = content
 
     def populate(self):
@@ -23,7 +24,7 @@ class YamlFile(TextFile):
 
 
 class Tree:
-    def __init__(self, structure):
+    def __init__(self, structure: dict):
         self.structure = structure
 
     def populate(self):
@@ -42,8 +43,8 @@ class Tree:
                     populate_file(paths + (path,), substructure)
 
         populate_directory((base,), self.structure)
-        return base
+        return Path(base)
 
     @staticmethod
-    def create(structure):
+    def create(structure: dict):
         return Tree(structure).populate()
