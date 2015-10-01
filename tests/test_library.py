@@ -1,8 +1,11 @@
+from datetime import datetime, date
+import tempfile
 import unittest
+from pathlib import Path
 
 import piexif
 
-from ephim.library import Library, Photo, Masters
+from ephim.library import Library, Photo, Masters, Event
 from .utils.fs import Tree, YamlFile, JpegFile
 
 tree = Tree({
@@ -11,6 +14,11 @@ tree = Tree({
         '2014-02 Vacation': {
             'My photos': {
                 'metadata.yaml': YamlFile({
+                    # 'all': {
+                    #     'event_name': 'Vacation',
+                    #     'event_start': '2014-02-11',
+                    #     'event_end': '2014-02-15',
+                    # },
                     'first': {
                         'title': 'Hooray!',
                     },
@@ -28,7 +36,12 @@ tree = Tree({
             },
         },
         '2015-01 New Year': {
-            'metadata.yaml': YamlFile({}),
+            'metadata.yaml': YamlFile({
+                # 'all': {
+                #     'event_name': 'New Year',
+                #     'event_start': '2015-01-01',
+                # }
+            }),
         },
         'Nothing here': {},
     },
@@ -80,6 +93,7 @@ class MastersTests(unittest.TestCase):
         paths = map(lambda p: str(p.location), masters.discover_photos())
         self.assertSequenceEqual(sorted(expected_paths), sorted(paths))
 
+
 class PhotoTests(unittest.TestCase):
     def setUp(self):
         self.base = tree.populate()
@@ -95,4 +109,18 @@ class PhotoTests(unittest.TestCase):
 
     def test_filename_without_exif(self):
         photo = Photo(self.my_photos_path / 'noexif.jpg')
-        self.assertEqual(photo.new_filename, '0000-00-00 00.00.00.jpg')
+        dt = datetime.fromtimestamp((self.my_photos_path / 'noexif.jpg').stat().st_ctime)
+        self.assertEqual(photo.new_filename, dt.strftime('%Y-%m-%d %H.%M.%S.jpg'))
+
+
+class EventTests(unittest.TestCase):
+    def setUp(self):
+        self.base = Tree.create({})
+
+    def test_location_for_interval(self):
+        event = Event(self.base, 'Test Event', date(2014, 2, 11), date(2014, 2, 21))
+        self.assertEqual(event.location, self.base / '2014' / '2014-02-11..2014-02-21 Test Event')
+
+    def test_location_for_single_day_event(self):
+        event = Event(self.base, 'Test Event', date(2014, 2, 11), None)
+        self.assertEqual(event.location, self.base / '2014' / '2014-02-11 Test Event')

@@ -1,4 +1,6 @@
+from datetime import datetime, date
 from pathlib import Path
+import shutil
 
 import piexif
 
@@ -19,12 +21,25 @@ class Library:
 
     def __init__(self, location: Path):
         self.location = location.absolute()
-        self.masters_location = location / 'masters'
-        self.events_location = location / 'events'
+        self.masters_location = self.location / 'masters'
+        self.events_location = self.location / 'events'
 
     def discover_masters(self):
         for metadata_file in self.masters_location.rglob('metadata.yaml'):
             yield Masters(metadata_file.parent)
+
+    def organize_all(self):
+        self.organize_events()
+
+    def organize_events(self):
+        shutil.rmtree(str(self.events_location), ignore_errors=True)
+        for masters in self.discover_masters():
+            for photo in masters.discover_photos():
+                if photo.metadata.get('event'):
+                    event = Event(self.events_location,
+                                  photo.metadata.get('event'),
+                                  photo.metadata.get('event_start') or photo.datetime,
+                                  photo.metadata.get('event_end'))
 
 
 class Masters:
@@ -40,19 +55,41 @@ class Masters:
 class Photo:
     def __init__(self, location: Path):
         self.location = location
-        # self.metadata = metadata_file.get_section(location.stem)
-        metadata_store = MetadataFile(location.with_name('metadata.yaml'))
-        self.metadata = metadata_store.get_section(location.stem)
-        self.exif = piexif.load(str(location))['Exif']
+        metadata_store = MetadataFile(self.location.with_name('metadata.yaml'))
+        self.metadata = metadata_store.get_section(self.location.stem)
+        self.exif = piexif.load(str(self.location))['Exif']
 
     @property
     def new_filename(self):
-        fn = ''
-        if piexif.ExifIFD.DateTimeOriginal in self.exif:
-            fn += self.exif[piexif.ExifIFD.DateTimeOriginal].decode().replace(':', '-', 2).replace(':', '.')
-        else:
-            fn += '0000-00-00 00.00.00'
-        if 'title' in self.metadata:
+        fn = self.datetime.strftime('%Y-%m-%d %H.%M.%S')
+        if self.metadata.get('title'):
             fn += ' ' + self.metadata['title']
         fn += self.location.suffix.lower()
         return fn
+
+    @property
+    def datetime(self):
+        if piexif.ExifIFD.DateTimeOriginal in self.exif:
+            return datetime.strptime(self.exif[piexif.ExifIFD.DateTimeOriginal].decode(),
+                                     '%Y:%m:%d %H:%M:%S')
+        elif piexif.ExifIFD.DateTimeDigitized in self.exif:
+            return datetime.strptime(self.exif[piexif.ExifIFD.DateTimeDigitized].decode(),
+                                     '%Y:%m:%d %H:%M:%S')
+        return datetime.fromtimestamp(self.location.stat().st_ctime)
+
+
+class Event:
+    def __init__(self, events_location: Path, name: str, start: date, end: (date, None)):
+        self.events_location = events_location
+        self.name = name
+        self.start = start
+        self.end = end or start
+
+    @property
+    def location(self):
+        dirname = self.start.strftime('%Y-%m-%d')
+        if self.start != self.end:
+            dirname += '..' + self.end.strftime('%Y-%m-%d')
+        dirname += ' ' + self.name
+        return self.events_location / str(self.start.year) / dirname
+
