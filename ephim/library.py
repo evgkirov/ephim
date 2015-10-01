@@ -1,4 +1,5 @@
 from datetime import datetime, date
+import os
 from pathlib import Path
 import shutil
 
@@ -25,7 +26,7 @@ class Library:
         self.events_location = self.location / 'events'
 
     def discover_masters(self):
-        for metadata_file in self.masters_location.rglob('metadata.yaml'):
+        for metadata_file in self.masters_location.rglob('_metadata.yaml'):
             yield Masters(metadata_file.parent)
 
     def organize_all(self):
@@ -35,11 +36,19 @@ class Library:
         shutil.rmtree(str(self.events_location), ignore_errors=True)
         for masters in self.discover_masters():
             for photo in masters.discover_photos():
-                if photo.metadata.get('event'):
-                    event = Event(self.events_location,
-                                  photo.metadata.get('event'),
-                                  photo.metadata.get('event_start') or photo.datetime,
-                                  photo.metadata.get('event_end'))
+                # if photo.metadata.get('event'):
+                #     event = Event(self.events_location,
+                #                   photo.metadata.get('event'),
+                #                   photo.metadata.get('event_start') or photo.datetime,
+                #                   photo.metadata.get('event_end'))
+                #     event.mkdir()
+                #     photo.link(event.location)
+                event = Event(self.events_location,
+                              photo.metadata['event'],
+                              photo.metadata['event_start'] or photo.datetime,
+                              photo.metadata['event_end'])
+                event.mkdir()
+                photo.link(event.location)
 
 
 class Masters:
@@ -55,7 +64,7 @@ class Masters:
 class Photo:
     def __init__(self, location: Path):
         self.location = location
-        metadata_store = MetadataFile(self.location.with_name('metadata.yaml'))
+        metadata_store = MetadataFile(self.location.with_name('_metadata.yaml'))
         self.metadata = metadata_store.get_section(self.location.stem)
         self.exif = piexif.load(str(self.location))['Exif']
 
@@ -77,6 +86,9 @@ class Photo:
                                      '%Y:%m:%d %H:%M:%S')
         return datetime.fromtimestamp(self.location.stat().st_ctime)
 
+    def link(self, to: Path):
+        return os.link(str(self.location), str(to / self.new_filename))
+
 
 class Event:
     def __init__(self, events_location: Path, name: str, start: date, end: (date, None)):
@@ -89,7 +101,9 @@ class Event:
     def location(self):
         dirname = self.start.strftime('%Y-%m-%d')
         if self.start != self.end:
-            dirname += '..' + self.end.strftime('%Y-%m-%d')
+            dirname += '...' + self.end.strftime('%Y-%m-%d')
         dirname += ' ' + self.name
         return self.events_location / str(self.start.year) / dirname
 
+    def mkdir(self):
+        return os.makedirs(str(self.location), exist_ok=True)

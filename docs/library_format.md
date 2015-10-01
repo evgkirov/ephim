@@ -6,7 +6,7 @@
       * `cat.jpg`
       * `dog.jpg`
       * `bad.jpg`
-      * `metadata.yaml`
+      * `_metadata.yaml`
 * `events/`
   - `2014/`
     + `2014-01-01 New Year 2014/`

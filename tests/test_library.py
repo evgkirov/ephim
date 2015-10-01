@@ -13,7 +13,7 @@ tree = Tree({
     'masters': {
         '2014-02 Vacation': {
             'My photos': {
-                'metadata.yaml': YamlFile({
+                '_metadata.yaml': YamlFile({
                     # 'all': {
                     #     'event_name': 'Vacation',
                     #     'event_start': '2014-02-11',
@@ -32,11 +32,11 @@ tree = Tree({
                 'noexif.jpg': JpegFile(),
             },
             'Not my photos': {
-                'metadata.yaml': YamlFile({}),
+                '_metadata.yaml': YamlFile({}),
             },
         },
         '2015-01 New Year': {
-            'metadata.yaml': YamlFile({
+            '_metadata.yaml': YamlFile({
                 # 'all': {
                 #     'event_name': 'New Year',
                 #     'event_start': '2015-01-01',
@@ -119,7 +119,7 @@ class EventTests(unittest.TestCase):
 
     def test_location_for_interval(self):
         event = Event(self.base, 'Test Event', date(2014, 2, 11), date(2014, 2, 21))
-        self.assertEqual(event.location, self.base / '2014' / '2014-02-11..2014-02-21 Test Event')
+        self.assertEqual(event.location, self.base / '2014' / '2014-02-11...2014-02-21 Test Event')
 
     def test_location_for_single_day_event(self):
         event = Event(self.base, 'Test Event', date(2014, 2, 11), None)
