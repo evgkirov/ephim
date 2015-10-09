@@ -1,11 +1,10 @@
 from datetime import datetime, date
-import tempfile
 import unittest
-from pathlib import Path
 
 import piexif
 
 from ephim.library import Library, Photo, Masters, Event
+from ephim.utils import datetime_to_string
 from .utils.fs import Tree, YamlFile, JpegFile
 
 tree = Tree({
@@ -101,16 +100,16 @@ class PhotoTests(unittest.TestCase):
 
     def test_filename_with_title(self):
         photo = Photo(self.my_photos_path / 'first.jpg')
-        self.assertEqual(photo.new_filename, '2014-02-12 12.34.56 Hooray!.jpg')
+        self.assertEqual(photo.new_filename(counter=0), 'CFL_344960 - Hooray!.jpg')
 
     def test_filename_without_title(self):
         photo = Photo(self.my_photos_path / 'second.jpg')
-        self.assertEqual(photo.new_filename, '2014-02-14 12.34.56.jpg')
+        self.assertEqual(photo.new_filename(counter=1), 'CFN_344961.jpg')
 
     def test_filename_without_exif(self):
         photo = Photo(self.my_photos_path / 'noexif.jpg')
         dt = datetime.fromtimestamp((self.my_photos_path / 'noexif.jpg').stat().st_ctime)
-        self.assertEqual(photo.new_filename, dt.strftime('%Y-%m-%d %H.%M.%S.jpg'))
+        self.assertEqual(photo.new_filename(counter=2), datetime_to_string(dt) + '2.jpg')
 
 
 class EventTests(unittest.TestCase):

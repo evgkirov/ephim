@@ -2,9 +2,11 @@ from datetime import datetime, date
 import os
 from pathlib import Path
 import shutil
+import string
 
 import piexif
 
+from .utils import datetime_to_string, to_base
 from .metadata import MetadataFile
 
 
@@ -24,6 +26,7 @@ class Library:
         self.location = location.absolute()
         self.masters_location = self.location / 'masters'
         self.events_location = self.location / 'events'
+        self.all_location = self.location / 'all'
 
     def discover_masters(self):
         for metadata_file in self.masters_location.rglob('_metadata.yaml'):
@@ -34,6 +37,7 @@ class Library:
 
     def organize_events(self):
         shutil.rmtree(str(self.events_location), ignore_errors=True)
+        shutil.rmtree(str(self.all_location), ignore_errors=True)
         for masters in self.discover_masters():
             for photo in masters.discover_photos():
                 # if photo.metadata.get('event'):
@@ -49,6 +53,8 @@ class Library:
                               photo.metadata['event_end'])
                 event.mkdir()
                 photo.link(event.location)
+                os.makedirs(str(self.all_location), exist_ok=True)
+                photo.link(self.all_location)
 
 
 class Masters:
@@ -66,19 +72,24 @@ class Photo:
         self.location = location
         metadata_store = MetadataFile(self.location.with_name('_metadata.yaml'))
         self.metadata = metadata_store.get_section(self.location.stem)
-        self.exif = piexif.load(str(self.location))['Exif']
+        info = piexif.load(str(self.location))
+        self.exif = info['Exif']
+        self.zeroth = info['0th']
 
-    @property
-    def new_filename(self):
-        fn = self.datetime.strftime('%Y-%m-%d %H.%M.%S')
+    def new_filename(self, counter: int):
+        fn = datetime_to_string(self.datetime)
+        fn += to_base(counter, 36, string.digits + string.ascii_uppercase)
         if self.metadata.get('title'):
-            fn += ' ' + self.metadata['title']
+            fn += ' - ' + self.metadata['title']
         fn += self.location.suffix.lower()
         return fn
 
     @property
     def datetime(self):
-        if piexif.ExifIFD.DateTimeOriginal in self.exif:
+        if piexif.ImageIFD.DateTime in self.zeroth:
+            return datetime.strptime(self.zeroth[piexif.ImageIFD.DateTime].decode(),
+                                     '%Y:%m:%d %H:%M:%S')
+        elif piexif.ExifIFD.DateTimeOriginal in self.exif:
             return datetime.strptime(self.exif[piexif.ExifIFD.DateTimeOriginal].decode(),
                                      '%Y:%m:%d %H:%M:%S')
         elif piexif.ExifIFD.DateTimeDigitized in self.exif:
@@ -87,7 +98,12 @@ class Photo:
         return datetime.fromtimestamp(self.location.stat().st_ctime)
 
     def link(self, to: Path):
-        return os.link(str(self.location), str(to / self.new_filename))
+        counter = 0
+        while True:
+            try:
+                return os.link(str(self.location), str(to / self.new_filename(counter)))
+            except FileExistsError:
+                counter += 1
 
 
 class Event:

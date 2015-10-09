@@ -12,4 +12,5 @@ setup(
             'ephim = ephim.cli:main',
         ],
     },
+    install_requires=list(filter(None, open('requirements.txt', 'r').read().split('\n'))),
 )
