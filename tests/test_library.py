@@ -100,11 +100,11 @@ class PhotoTests(unittest.TestCase):
 
     def test_filename_with_title(self):
         photo = Photo(self.my_photos_path / 'first.jpg')
-        self.assertEqual(photo.new_filename(counter=0), 'CFL_344960 - Hooray!.jpg')
+        self.assertEqual(photo.new_filename(counter=0), 'CFL_452960 - Hooray!.jpg')
 
     def test_filename_without_title(self):
         photo = Photo(self.my_photos_path / 'second.jpg')
-        self.assertEqual(photo.new_filename(counter=1), 'CFN_344961.jpg')
+        self.assertEqual(photo.new_filename(counter=1), 'CFN_452961.jpg')
 
     def test_filename_without_exif(self):
         photo = Photo(self.my_photos_path / 'noexif.jpg')
