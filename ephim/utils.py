@@ -7,7 +7,7 @@ def to_base(num, b, numerals=string.digits + string.ascii_lowercase):
 
 
 def datetime_to_string(dt: datetime):
-    delta = dt - datetime.fromtimestamp(0)
+    delta = dt - datetime.utcfromtimestamp(0)
 
     ### 0
     # return dt.strftime('%Y-%m-%d %H.%M.%S.')
