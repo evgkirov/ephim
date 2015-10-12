@@ -1,73 +1,56 @@
 from datetime import datetime, date
 import unittest
 
-import piexif
+from piexif import ImageIFD, ExifIFD
 
 from ephim.library import Library, Photo, Masters, Event
 from ephim.utils import datetime_to_string
 from .utils.fs import Tree, YamlFile, JpegFile
 
-tree = Tree({
-    'library.yaml': YamlFile({}),
-    'masters': {
-        '2014-02 Vacation': {
-            'My photos': {
-                '_metadata.yaml': YamlFile({
-                    # 'all': {
-                    #     'event_name': 'Vacation',
-                    #     'event_start': '2014-02-11',
-                    #     'event_end': '2014-02-15',
-                    # },
-                    'first': {
-                        'title': 'Hooray!',
-                    },
-                }),
-                'first.jpg': JpegFile({
-                    piexif.ExifIFD.DateTimeOriginal: '2014:02:12 12:34:56',
-                }),
-                'second.jpg': JpegFile({
-                    piexif.ExifIFD.DateTimeOriginal: '2014:02:14 12:34:56',
-                }),
-                'noexif.jpg': JpegFile(),
-            },
-            'Not my photos': {
-                '_metadata.yaml': YamlFile({}),
-            },
-        },
-        '2015-01 New Year': {
-            '_metadata.yaml': YamlFile({
-                # 'all': {
-                #     'event_name': 'New Year',
-                #     'event_start': '2015-01-01',
-                # }
-            }),
-        },
-        'Nothing here': {},
-    },
-})
-
 
 class LibraryTests(unittest.TestCase):
-    def setUp(self):
-        self.base = tree.populate()
-
     def test_find_library(self):
-        self.assertEqual(Library.find_library(self.base), self.base)
-        self.assertEqual(Library.find_library(self.base / 'masters'), self.base)
+        base = Tree.create({
+            'library.yaml': YamlFile(),
+            'some_dir': {},
+        })
+        self.assertEqual(Library.find_library(base), base)
+        self.assertEqual(Library.find_library(base / 'some_dir'), base)
 
     def test_library_not_found(self):
         base = Tree.create({})
         self.assertRaises(FileNotFoundError, Library.find_library, base)
 
     def test_library_init(self):
-        library = Library(self.base)
-        self.assertEqual(self.base, library.location)
+        base = Tree.create({
+            'library.yaml': YamlFile(),
+            'masters': {},
+        })
+        library = Library(base)
+        self.assertEqual(base, library.location)
         self.assertTrue(library.location.is_dir())
         self.assertTrue(library.masters_location.is_dir())
-        self.assertEqual(self.base / 'masters', library.masters_location)
+        self.assertEqual(base / 'masters', library.masters_location)
 
     def test_masters_discovery(self):
-        library = Library(self.base)
+        base = Tree.create({
+            'library.yaml': YamlFile(),
+            'masters': {
+                '2014-02 Vacation': {
+                    'My photos': {
+                        '_metadata.yaml': YamlFile(),
+                    },
+                    'Not my photos': {
+                        '_metadata.yaml': YamlFile(),
+                    },
+                },
+                '2015-01 New Year': {
+                    '_metadata.yaml': YamlFile(),
+                },
+                'Nothing here': {},
+            }
+        })
+        library = Library(base)
         expected_paths = map(str, [
             library.masters_location / '2014-02 Vacation' / 'My photos',
             library.masters_location / '2014-02 Vacation' / 'Not my photos',
@@ -78,37 +61,60 @@ class LibraryTests(unittest.TestCase):
 
 
 class MastersTests(unittest.TestCase):
-    def setUp(self):
-        self.base = tree.populate()
-        self.my_photos_path = self.base / 'masters' / '2014-02 Vacation' / 'My photos'
-
     def test_photos_discovery(self):
-        masters = Masters(self.my_photos_path)
+        path = Tree.create({
+            '_metadata.yaml': YamlFile(),
+            'first.jpg': JpegFile(),
+            'second.jpg': JpegFile(),
+            'CAPS.JPEG': JpegFile(),
+        })
+
+        masters = Masters(path)
         expected_paths = map(str, [
-            self.my_photos_path / 'first.jpg',
-            self.my_photos_path / 'second.jpg',
-            self.my_photos_path / 'noexif.jpg',
+            path / 'first.jpg',
+            path / 'second.jpg',
+            path / 'CAPS.JPEG',
         ])
         paths = map(lambda p: str(p.location), masters.discover_photos())
         self.assertSequenceEqual(sorted(expected_paths), sorted(paths))
 
 
 class PhotoTests(unittest.TestCase):
-    def setUp(self):
-        self.base = tree.populate()
-        self.my_photos_path = self.base / 'masters' / '2014-02 Vacation' / 'My photos'
+    def test_filename_with_date_from_0th_and_title_from_yaml(self):
+        path = Tree.create({
+            '_metadata.yaml': YamlFile({
+                'photo': {
+                    'title': 'Hooray!'
+                },
+            }),
+            'photo.jpg': JpegFile({
+                '0th': {
+                    ImageIFD.DateTime: '2014:02:12 01:00:00'
+                },
+            }),
+        })
+        photo = Photo(path / 'photo.jpg')
+        self.assertEqual(photo.new_filename(counter=0), 'CFL_036000 - Hooray!.jpg')
 
-    def test_filename_with_title(self):
-        photo = Photo(self.my_photos_path / 'first.jpg')
-        self.assertEqual(photo.new_filename(counter=0), 'CFL_452960 - Hooray!.jpg')
+    def test_filename_with_date_from_exif(self):
+        path = Tree.create({
+            '_metadata.yaml': YamlFile(),
+            'photo.jpg': JpegFile({
+                'Exif': {
+                    ExifIFD.DateTimeOriginal: '2014:02:12 01:00:00'
+                },
+            }),
+        })
+        photo = Photo(path / 'photo.jpg')
+        self.assertEqual(photo.new_filename(counter=10), 'CFL_03600A.jpg')
 
-    def test_filename_without_title(self):
-        photo = Photo(self.my_photos_path / 'second.jpg')
-        self.assertEqual(photo.new_filename(counter=1), 'CFN_452961.jpg')
-
-    def test_filename_without_exif(self):
-        photo = Photo(self.my_photos_path / 'noexif.jpg')
-        dt = datetime.fromtimestamp((self.my_photos_path / 'noexif.jpg').stat().st_ctime)
+    def test_filename_with_date_from_filesystem(self):
+        path = Tree.create({
+            '_metadata.yaml': YamlFile(),
+            'photo.jpg': JpegFile(),
+        })
+        photo = Photo(path / 'photo.jpg')
+        dt = datetime.fromtimestamp((path / 'photo.jpg').stat().st_ctime)
         self.assertEqual(photo.new_filename(counter=2), datetime_to_string(dt) + '2.jpg')
 
 

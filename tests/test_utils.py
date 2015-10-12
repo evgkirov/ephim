@@ -1,5 +1,6 @@
 import unittest
 
+from piexif import ExifIFD
 import piexif
 
 from .utils.fs import Tree, EmptyFile, TextFile, YamlFile, JpegFile
@@ -41,8 +42,10 @@ class FSTests(unittest.TestCase):
 
     def test_jpeg_file(self):
         base = Tree.create({
-            'file.jpg': JpegFile(exif={
-                piexif.ExifIFD.DateTimeOriginal: '2099:09:29 10:10:10',
+            'file.jpg': JpegFile({
+                'Exif': {
+                    ExifIFD.DateTimeOriginal: '2099:09:29 10:10:10',
+                }
             }),
         })
         self.assertFile(base / 'file.jpg')
