@@ -2,8 +2,9 @@ language: python
 python:
   - "3.4"
 install: "pip install -r requirements.txt"
-apt:
-  packages:
-    - exiftool
+addons:
+  apt:
+    packages:
+      - exiftool
 script: "python -m unittest"
 sudo: false
