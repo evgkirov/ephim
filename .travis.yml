@@ -5,6 +5,6 @@ install: "pip install -r requirements.txt"
 addons:
   apt:
     packages:
-      - exiftool
+      - libimage-exiftool-perl
 script: "python -m unittest"
 sudo: false
