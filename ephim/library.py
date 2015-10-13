@@ -6,11 +6,12 @@ import string
 
 import piexif
 
-from .utils import datetime_to_string, to_base
+from .utils import datetime_to_string, to_base, exiftool
 from .metadata import MetadataFile
 
 
 class Library:
+    @staticmethod
     def find_library(path: str):
         location = Path(path).absolute()
         while True:

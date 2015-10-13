@@ -2,10 +2,8 @@ from io import BytesIO
 import os
 from pathlib import Path
 import tempfile
-
-import piexif
-
 import yaml
+from ephim.utils import exiftool
 
 
 class EmptyFile:
@@ -29,7 +27,7 @@ class YamlFile(TextFile):
 
 
 class JpegFile(EmptyFile):
-    def __init__(self, ifds: dict = None):
+    def __init__(self, exif: dict = None):
         # empty jpeg
         self.image = (b'\xff\xd8\xff\xec\x00\x11Ducky\x00\x01\x00\x04\x00\x00\x00\x00\x00\x00\xff\xee\x00\x0eAdobe\x00d'
                       b'\xc0\x00\x00\x00\x01\xff\xdb\x00\x84\x00\x1b\x1a\x1a)\x1d)A&&AB///BG?>>?GGGGGGGGGGGGGGGGGGGGGGG'
@@ -39,13 +37,20 @@ class JpegFile(EmptyFile):
                       b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00'
                       b'\x00\x00\x00\x00\x00\x00\x00\x11\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
                       b'\x00\x00\xff\xda\x00\x0c\x03\x01\x00\x02\x11\x03\x11\x00?\x00\xa6\x00\x1f\xff\xd9')
-        self.ifds = ifds or {}
+        self.exif = exif or {}
 
     def populate(self):
-        exif_bytes = piexif.dump(self.ifds)
-        output = BytesIO()
-        piexif.insert(exif_bytes, self.image, output)
-        return output.getvalue()
+        f = tempfile.NamedTemporaryFile()
+        f.write(self.image)
+        f.file.flush()
+        fn = f.name
+        params = ['-{0}={1}'.format(*item).encode('utf-8') for item in self.exif.items()]
+        params.append(f.name.encode('utf-8'))
+        exiftool.execute(*params)
+        f = open(fn, 'rb')
+        content = f.read()
+        f.close()
+        return content
 
 
 class Tree:

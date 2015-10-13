@@ -88,9 +88,7 @@ class PhotoTests(unittest.TestCase):
                 },
             }),
             'photo.jpg': JpegFile({
-                '0th': {
-                    ImageIFD.DateTime: '2014:02:12 01:00:00'
-                },
+                'CreateDate': '2014:02:12 01:00:00',
             }),
         })
         photo = Photo(path / 'photo.jpg')
@@ -100,9 +98,7 @@ class PhotoTests(unittest.TestCase):
         path = Tree.create({
             '_metadata.yaml': YamlFile(),
             'photo.jpg': JpegFile({
-                'Exif': {
-                    ExifIFD.DateTimeOriginal: '2014:02:12 01:00:00'
-                },
+                'EXIF:DateTimeOriginal': '2014:02:12 01:00:00',
             }),
         })
         photo = Photo(path / 'photo.jpg')

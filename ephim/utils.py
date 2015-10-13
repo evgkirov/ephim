@@ -1,6 +1,11 @@
 from datetime import datetime
 import string
 
+from .vendor.exiftool import ExifTool
+
+exiftool = ExifTool()
+exiftool.start()
+
 
 def to_base(num, b, numerals=string.digits + string.ascii_lowercase):
     return ((num == 0) and numerals[0]) or (to_base(num // b, b, numerals).lstrip(numerals[0]) + numerals[num % b])

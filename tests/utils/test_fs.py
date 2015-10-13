@@ -1,9 +1,7 @@
 import unittest
 
-from piexif import ExifIFD
-import piexif
-
 from tests.utils.fs import Tree, EmptyFile, TextFile, YamlFile, JpegFile
+from ephim.utils import exiftool
 
 
 class FSTests(unittest.TestCase):
@@ -43,11 +41,9 @@ class FSTests(unittest.TestCase):
     def test_jpeg_file(self):
         base = Tree.create({
             'file.jpg': JpegFile({
-                'Exif': {
-                    ExifIFD.DateTimeOriginal: '2099:09:29 10:10:10',
-                }
+                'EXIF:DateTimeOriginal': '2099:09:29 10:10:10',
             }),
         })
         self.assertFile(base / 'file.jpg')
-        exif = piexif.load(str(base / 'file.jpg'))
-        self.assertEqual(exif['Exif'][piexif.ExifIFD.DateTimeOriginal], b'2099:09:29 10:10:10')
+        exif = exiftool.get_metadata(str(base / 'file.jpg'))
+        self.assertEqual(exif['EXIF:DateTimeOriginal'], '2099:09:29 10:10:10')

@@ -2,7 +2,6 @@ import os
 
 from .library import Library
 
-
 def main():
     location = Library.find_library(os.getcwd())
     library = Library(location)
