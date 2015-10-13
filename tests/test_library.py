@@ -5,7 +5,7 @@ from piexif import ImageIFD, ExifIFD
 
 from ephim.library import Library, Photo, Masters, Event
 from ephim.utils import datetime_to_string
-from .utils.fs import Tree, YamlFile, JpegFile
+from tests.utils.fs import Tree, YamlFile, JpegFile
 
 
 class LibraryTests(unittest.TestCase):

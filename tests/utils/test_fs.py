@@ -3,7 +3,7 @@ import unittest
 from piexif import ExifIFD
 import piexif
 
-from .utils.fs import Tree, EmptyFile, TextFile, YamlFile, JpegFile
+from tests.utils.fs import Tree, EmptyFile, TextFile, YamlFile, JpegFile
 
 
 class FSTests(unittest.TestCase):
